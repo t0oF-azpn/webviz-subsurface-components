@@ -1,3 +1,5 @@
+//import { workerEmit as workerpool_workerEmit } from "workerpool";
+
 import type { MeshType, MeshTypeLines } from "./typeDefs";
 import type { WebWorkerParams } from "./grid3dLayer";
 
@@ -959,6 +961,7 @@ export function makeFullMesh(e: { data: WebWorkerParams }) {
 
     let pn = 0;
     let i = 0;
+    let lastChunk = -1;
 
     const counts = getPrimitiveCounts(polys);
     const meshArrays = createMeshArrays(counts);
@@ -979,6 +982,36 @@ export function makeFullMesh(e: { data: WebWorkerParams }) {
             i < polys.length &&
             arraysIndex < meshArrays.arrays.trianglePoints.length - 3
         ) {
+            const currChunk = i - (i % 100000);
+            if (lastChunk != currChunk) {
+                lastChunk = currChunk;
+                console.log(
+                    `console.log: Extracting polygon ${pn} from data ${i} / ${polys.length}`
+                );
+                // Tentative to communicate with the main thread before finding a fix for worker.emit in webworker
+                //
+                // postMessage({
+                //     id: 1,
+                //     isEvent: true,
+                //     payload: {
+                //         status: "in_progress",
+                //         detail: `postMessage: Extracting polygon ${pn} from data ${i} / ${polys.length}`,
+                //     },
+                // });
+                // new Promise<null>(() => {
+                //     workerpool_workerEmit({
+                //         status: "in_progress",
+                //         detail: `workerPool: Extracting polygon ${pn} from data ${i} / ${polys.length}`,
+                //     });
+                // });
+
+                // worker magically exists in the global space dues to how the webworker was built by workerPool
+                worker.emit({
+                    status: "in_progress",
+                    detail: `workerPool: Extracting polygon ${pn} from data ${i} / ${polys.length}`,
+                });
+            }
+
             const n = polys[i];
             const propertyValue = properties[pn++];
 

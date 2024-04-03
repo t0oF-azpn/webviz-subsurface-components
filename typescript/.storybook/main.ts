@@ -75,7 +75,7 @@ const config: StorybookConfig = {
             },
         };
     },
-    staticDirs: ["../../example-data"],
+    staticDirs: ["../../example-data", "../public"],
     framework: {
         name: "@storybook/react-webpack5",
         options: {},

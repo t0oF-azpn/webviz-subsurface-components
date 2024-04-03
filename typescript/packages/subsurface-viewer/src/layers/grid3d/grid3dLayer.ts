@@ -5,7 +5,7 @@ import type { Color } from "@deck.gl/core/typed";
 import { CompositeLayer } from "@deck.gl/core/typed";
 import { load, JSONLoader } from "@loaders.gl/core";
 
-import workerpool from "workerpool";
+import workerpool, { pool as workerpool_pool } from "workerpool";
 
 import type { Material } from "./typeDefs";
 import PrivateLayer from "./privateGrid3dLayer";
@@ -22,6 +22,9 @@ import { makeFullMesh } from "./webworker";
 import config from "../../SubsurfaceConfig.json";
 import { findConfig } from "../../utils/configTools";
 
+//import bundle from "workerpool/dist/workerpool.min.js";
+//importScripts("workerpool/dist/workerpool.js");
+
 // init workerpool
 const workerPoolConfig = findConfig(
     config,
@@ -29,13 +32,16 @@ const workerPoolConfig = findConfig(
     "config/layer/Grid3DLayer/workerpool"
 );
 
-const pool = workerpool.pool({
+const pool = workerpool_pool("/webworker.js", {
     ...{
         maxWorkers: 10,
         workerType: "web",
     },
+    emitStdStreams: true,
     ...workerPoolConfig,
 });
+
+workerpool.worker({ makeFullMesh: makeFullMesh });
 
 function onTerminateWorker() {
     const stats = pool.stats();
@@ -276,7 +282,16 @@ export default class Grid3DLayer extends CompositeLayer<Grid3DLayerProps> {
                 properties,
             };
 
-            pool.exec(makeFullMesh, [{ data: webworkerParams }]).then((e) => {
+            workerpool.worker({ makeFullMesh: makeFullMesh });
+            pool.exec("makeFullMesh", [{ data: webworkerParams }], {
+                on: function (payload) {
+                    if (payload.status === "in_progress") {
+                        console.log(`In progress: ${payload.detail}`);
+                    } else {
+                        console.log(`payload: ${payload}`);
+                    }
+                },
+            }).then((e) => {
                 const [mesh, mesh_lines, propertyValueRange] = e;
                 const legend = {
                     discrete: false,
@@ -298,7 +313,9 @@ export default class Grid3DLayer extends CompositeLayer<Grid3DLayerProps> {
                     typeof this.props.reportBoundingBox !== "undefined" &&
                     reportBoundingBox
                 ) {
-                    this.props.reportBoundingBox({ layerBoundingBox: bbox });
+                    this.props.reportBoundingBox({
+                        layerBoundingBox: bbox,
+                    });
                 }
 
                 this.setState({
