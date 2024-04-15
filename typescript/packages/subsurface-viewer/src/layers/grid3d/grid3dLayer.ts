@@ -32,7 +32,7 @@ const workerPoolConfig = findConfig(
     "config/layer/Grid3DLayer/workerpool"
 );
 
-const pool = workerpool_pool("/webworker.js", {
+const pool = workerpool_pool({
     ...{
         maxWorkers: 10,
         workerType: "web",
@@ -41,7 +41,8 @@ const pool = workerpool_pool("/webworker.js", {
     ...workerPoolConfig,
 });
 
-workerpool.worker({ makeFullMesh: makeFullMesh });
+// Does not work on browser environment :(
+// workerpool.worker({ makeFullMesh: makeFullMesh });
 
 function onTerminateWorker() {
     const stats = pool.stats();
@@ -282,8 +283,7 @@ export default class Grid3DLayer extends CompositeLayer<Grid3DLayerProps> {
                 properties,
             };
 
-            workerpool.worker({ makeFullMesh: makeFullMesh });
-            pool.exec("makeFullMesh", [{ data: webworkerParams }], {
+            pool.exec(makeFullMesh, [{ data: webworkerParams }], {
                 on: function (payload) {
                     if (payload.status === "in_progress") {
                         console.log(`In progress: ${payload.detail}`);
