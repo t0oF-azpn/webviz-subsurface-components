@@ -20,7 +20,7 @@
         "lint": "eslint *.js *.json \"**/*.{js,jsx,ts,tsx,mdx,json}\" .storybook",
         "format": "npm run lint -- --fix",
         "validate": "npm run typecheck && npm run lint",
-        "storybook": "storybook dev -p 6006",
+        "storybook": "storybook dev -p 6006 --debug-webpack",
         "build-storybook": "storybook build",
         "storybook:test": "test-storybook --no-index-json",
         "docker:build": "docker build --tag wsc_story_test --file Dockerfile.test .",

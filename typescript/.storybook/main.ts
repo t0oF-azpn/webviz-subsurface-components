@@ -1,5 +1,7 @@
 import { dirname, join } from "path";
 
+import WorkerUrlPlugin from "worker-url/plugin";
+
 import type { StorybookConfig } from "@storybook/react-webpack5";
 
 const config: StorybookConfig = {
@@ -73,6 +75,7 @@ const config: StorybookConfig = {
                     worker_threads: false,
                 },
             },
+            plugins: [...(config.plugins as any), new WorkerUrlPlugin()],
         };
     },
     staticDirs: ["../../example-data", "../public"],

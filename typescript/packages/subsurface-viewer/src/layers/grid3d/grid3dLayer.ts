@@ -5,7 +5,8 @@ import type { Color } from "@deck.gl/core/typed";
 import { CompositeLayer } from "@deck.gl/core/typed";
 import { load, JSONLoader } from "@loaders.gl/core";
 
-import workerpool, { pool as workerpool_pool } from "workerpool";
+import { WorkerUrl } from "worker-url";
+import workerpool from "workerpool";
 
 import type { Material } from "./typeDefs";
 import PrivateLayer from "./privateGrid3dLayer";
@@ -17,13 +18,10 @@ import type {
     BoundingBox3D,
     ReportBoundingBoxAction,
 } from "../../components/Map";
-import { makeFullMesh } from "./webworker";
+//import { makeFullMesh } from "./webworker";
 
 import config from "../../SubsurfaceConfig.json";
 import { findConfig } from "../../utils/configTools";
-
-//import bundle from "workerpool/dist/workerpool.min.js";
-//importScripts("workerpool/dist/workerpool.js");
 
 // init workerpool
 const workerPoolConfig = findConfig(
@@ -32,7 +30,9 @@ const workerPoolConfig = findConfig(
     "config/layer/Grid3DLayer/workerpool"
 );
 
-const pool = workerpool_pool({
+const WorkerURL = new WorkerUrl(new URL("./webworker.ts", import.meta.url));
+
+const pool = workerpool.pool(WorkerURL.toString(), {
     ...{
         maxWorkers: 10,
         workerType: "web",
@@ -40,9 +40,6 @@ const pool = workerpool_pool({
     emitStdStreams: true,
     ...workerPoolConfig,
 });
-
-// Does not work on browser environment :(
-// workerpool.worker({ makeFullMesh: makeFullMesh });
 
 function onTerminateWorker() {
     const stats = pool.stats();
@@ -283,7 +280,7 @@ export default class Grid3DLayer extends CompositeLayer<Grid3DLayerProps> {
                 properties,
             };
 
-            pool.exec(makeFullMesh, [{ data: webworkerParams }], {
+            pool.exec("makeFullMesh", [{ data: webworkerParams }], {
                 on: function (payload) {
                     if (payload.status === "in_progress") {
                         console.log(`In progress: ${payload.detail}`);
